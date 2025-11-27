@@ -28,6 +28,21 @@
             .btn-action {
                 @apply px-4 py-2 rounded-lg transition-colors duration-300 flex items-center gap-2;
             }
+            .tab-fullscreen {
+                @apply fixed top-0 left-0 right-0 bottom-0 z-50 bg-white flex flex-col p-4 overflow-auto;
+            }
+            /* 全屏下的谱子容器：取消最大宽度限制，占满窗口 */
+            .tab-fullscreen .tab-content {
+                @apply w-full !max-w-none;
+            }
+            /* 全屏下的图片：宽度100%铺满，高度自动保持原比例 */
+            .tab-fullscreen img {
+                @apply w-full h-auto !max-w-none;
+            }
+            /* 全屏关闭按钮样式 */
+            .fullscreen-close {
+                @apply absolute top-4 right-4 bg-primary text-white p-2 rounded-full cursor-pointer hover:bg-red-600 z-10;
+            }
         }
     </style>
 </head>
@@ -37,6 +52,10 @@
             <a href="index.html" class="text-2xl font-bold text-primary">
                 <i class="fas fa-guitar mr-2"></i>吉他谱网
             </a>
+            <button id="fullscreenBtn" class="btn-action bg-dark text-white hover:bg-gray-800">
+                <i class="fas fa-expand"></i>
+                <span class="hidden sm:inline">全屏查看</span>
+            </button>
             <div class="flex gap-3">
                 <button id="downloadBtn" class="btn-action bg-secondary text-white hover:bg-secondary/90">
                     <i class="fas fa-download"></i>
@@ -214,7 +233,57 @@
                 }
             });
         }
+        // ========== 新增：全屏查看逻辑 ==========
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const tabContentParent = tabContent.parentElement; // 谱子容器的父元素
+        let isFullscreen = false; // 全屏状态标记
+        let fullscreenContainer = null; // 全屏容器
 
+        // 创建全屏容器并切换状态
+        fullscreenBtn.addEventListener('click', () => {
+            if (!isFullscreen) {
+                // 进入全屏：创建全屏容器，复制谱子内容到其中
+                fullscreenContainer = document.createElement('div');
+                fullscreenContainer.className = 'tab-fullscreen';
+                // 添加关闭按钮
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'fullscreen-close';
+                closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+                closeBtn.onclick = () => toggleFullscreen(false);
+                fullscreenContainer.appendChild(closeBtn);
+                // 复制谱子内容（深拷贝，保留图片）
+                fullscreenContainer.appendChild(tabContent.cloneNode(true));
+                // 添加到body
+                document.body.appendChild(fullscreenContainer);
+                // 禁止原页面滚动
+                document.body.style.overflow = 'hidden';
+                isFullscreen = true;
+                // 按钮文字切换
+                fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i><span class="hidden sm:inline">退出全屏</span>';
+            } else {
+                // 退出全屏
+                toggleFullscreen(false);
+            }
+        });
+
+        // 退出全屏的通用方法
+        function toggleFullscreen(flag = true) {
+            if (fullscreenContainer) {
+                fullscreenContainer.remove();
+                fullscreenContainer = null;
+            }
+            document.body.style.overflow = '';
+            isFullscreen = false;
+            fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i><span class="hidden sm:inline">全屏查看</span>';
+        }
+
+        // 按ESC键退出全屏
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isFullscreen) {
+                toggleFullscreen(false);
+            }
+        });
+        // ========== 全屏逻辑结束 ==========
         // 页面加载后执行
         window.addEventListener('DOMContentLoaded', async () => {
             await loadTabConfig(); // 先加载配置
