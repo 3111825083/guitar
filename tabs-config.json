@@ -5,7 +5,12 @@
     "type": "弹唱",
     "view": "2.3万",
     "download": "892",
-    "cover": "https://picsum.photos/seed/guitar1/300/200"
+    "cover": "https://picsum.photos/seed/guitar1/300/200",
+    "scroll": [
+      { "time": 0, "position": 0 },
+      { "time": 5, "position": 600 },
+      { "time": 15, "position": 1600 }
+    ]
   },
   "成都": {
     "id": "2",
@@ -13,7 +18,10 @@
     "type": "弹唱",
     "view": "5.6万",
     "download": "2156",
-    "cover": "https://picsum.photos/seed/guitar2/300/200"
+    "cover": "https://picsum.photos/seed/guitar2/300/200",
+    "scroll": [
+      { "time": 0, "position": 0 }
+    ]
   },
   "卡农": {
     "id": "3",
@@ -21,7 +29,10 @@
     "type": "指弹",
     "view": "3.1万",
     "download": "1024",
-    "cover": "https://picsum.photos/seed/guitar3/300/200"
+    "cover": "https://picsum.photos/seed/guitar3/300/200",
+    "scroll": [
+      { "time": 0, "position": 0 }
+    ]
   },
   "我们俩": {
     "id": "4",
@@ -29,6 +40,9 @@
     "type": "弹唱",
     "view": "1.8万",
     "download": "753",
-    "cover": "https://picsum.photos/seed/guitar4/300/200"
+    "cover": "https://picsum.photos/seed/guitar4/300/200",
+    "scroll": [
+      { "time": 0, "position": 0 }
+    ]
   }
 }

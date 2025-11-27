@@ -58,6 +58,10 @@
                     <i class="fas fa-expand"></i>
                     <span class="hidden sm:inline">全屏查看</span>
                 </button>
+                <button id="autoScrollBtn" class="btn-action border border-primary text-primary hover:bg-primary/10" title="自动滚动">
+                    <i class="fas fa-play"></i>
+                    <span class="hidden sm:inline">自动滚动</span>
+                </button>
                 <button id="downloadBtn" class="btn-action bg-secondary text-white hover:bg-secondary/90">
                     <i class="fas fa-download"></i>
                     <span class="hidden sm:inline">下载谱子</span>
@@ -111,6 +115,8 @@
     <script>
         // 全局变量：谱子配置数据
         let tabsConfig = {};
+        let currentTabKey = null;
+        let currentTab = null;
         // 从URL获取参数
         const urlParams = new URLSearchParams(window.location.search);
         const tabId = urlParams.get('id');
@@ -124,8 +130,8 @@
                 if (!response.ok) throw new Error('配置文件加载失败');
                 tabsConfig = await response.json();
                 // 从配置中找到当前谱子的信息（通过ID匹配）
-                const currentTabKey = Object.keys(tabsConfig).find(folder => tabsConfig[folder].id === tabId);
-                const currentTab = currentTabKey ? tabsConfig[currentTabKey] : null;
+                currentTabKey = Object.keys(tabsConfig).find(folder => tabsConfig[folder].id === tabId);
+                currentTab = currentTabKey ? tabsConfig[currentTabKey] : null;
 
                 if (!currentTab) {
                     throw new Error('未找到该谱子的配置信息');
@@ -142,6 +148,8 @@
 
                 // 生成相关谱子推荐
                 generateRelatedTabs(currentTabKey);
+                // 准备自动滚动参数（确保存在数组）
+                if (currentTab && !Array.isArray(currentTab.scroll)) currentTab.scroll = [{time:0, position:0}];
             } catch (error) {
                 document.getElementById('tabTitle').textContent = '加载失败';
                 document.getElementById('tabStats').innerHTML = `<span class="text-red-500">${error.message}</span>`;
@@ -246,6 +254,7 @@
                 // 进入全屏：创建全屏容器，复制谱子内容到其中
                 fullscreenContainer = document.createElement('div');
                 fullscreenContainer.className = 'tab-fullscreen';
+                fullscreenContainer.style.overflow = 'auto';
                 // 添加关闭按钮
                 const closeBtn = document.createElement('button');
                 closeBtn.className = 'fullscreen-close';
@@ -254,6 +263,14 @@
                 fullscreenContainer.appendChild(closeBtn);
                 // 复制谱子内容（深拷贝，保留图片）
                 fullscreenContainer.appendChild(tabContent.cloneNode(true));
+                // 在全屏容器顶部加入一个自动滚动按钮副本，方便操作
+                const fsControl = document.createElement('div');
+                fsControl.style.position = 'absolute';
+                fsControl.style.left = '16px';
+                fsControl.style.top = '16px';
+                fsControl.style.zIndex = '60';
+                fsControl.innerHTML = `<button id="autoScrollBtn_fs" class="btn-action border border-primary text-primary hover:bg-primary/10"><i class="fas fa-play"></i><span class="hidden sm:inline">自动滚动</span></button>`;
+                fullscreenContainer.appendChild(fsControl);
                 // 添加到body
                 document.body.appendChild(fullscreenContainer);
                 // 禁止原页面滚动
@@ -276,6 +293,8 @@
             document.body.style.overflow = '';
             isFullscreen = false;
             fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i><span class="hidden sm:inline">全屏查看</span>';
+            // exit fullscreen: ensure auto-scroll stopped
+            stopAutoScrollOnExit();
         }
 
         // 按ESC键退出全屏
@@ -284,6 +303,124 @@
                 toggleFullscreen(false);
             }
         });
+        // ========== 新增：自动滚动逻辑 ==========
+        const autoScrollBtn = document.getElementById('autoScrollBtn');
+        let autoScrollState = {
+            playing: false,
+            rafId: null,
+            startTime: 0,
+            pausedAt: 0,
+            steps: []
+        };
+
+        function getScrollTarget() {
+            // 如果在全屏模式，滚动目标是全屏容器，否则滚动页面主区域（tabContent 的父容器）
+            if (isFullscreen && fullscreenContainer) return fullscreenContainer;
+            return document.scrollingElement || document.documentElement;
+        }
+
+        function prepareSteps() {
+            const steps = (currentTab && Array.isArray(currentTab.scroll)) ? currentTab.scroll.slice() : [];
+            // 确保至少有起点
+            if (steps.length === 0) steps.push({time:0, position:0});
+            // 按时间排序
+            steps.sort((a,b) => a.time - b.time);
+            autoScrollState.steps = steps;
+        }
+
+        function tick(now) {
+            if (!autoScrollState.playing) return;
+            if (!autoScrollState.startTime) autoScrollState.startTime = now - (autoScrollState.pausedAt || 0);
+            const elapsed = (now - autoScrollState.startTime) / 1000; // seconds
+            const steps = autoScrollState.steps;
+            const target = getScrollTarget();
+            if (!steps.length) return;
+
+            // find current segment
+            let i = 0;
+            while (i < steps.length-1 && elapsed >= steps[i+1].time) i++;
+            const s1 = steps[i];
+            const s2 = (i < steps.length-1) ? steps[i+1] : null;
+            let pos = s1.position;
+            if (s2) {
+                const dt = s2.time - s1.time;
+                const t = dt === 0 ? 0 : (elapsed - s1.time) / dt;
+                const clamped = Math.max(0, Math.min(1, t));
+                pos = s1.position + (s2.position - s1.position) * clamped;
+            } else {
+                // after last step, keep at last position and stop
+                pos = s1.position;
+                // stop playback when elapsed exceeds last time + 1s buffer
+                if (elapsed > s1.time + 1) {
+                    stopAutoScroll();
+                }
+            }
+
+            // apply position
+            try {
+                target.scrollTop = pos;
+            } catch (e) {
+                // fallback: window scroll
+                window.scrollTo(0, pos);
+            }
+
+            autoScrollState.rafId = requestAnimationFrame(tick);
+        }
+
+        function startAutoScroll() {
+            if (autoScrollState.playing) return;
+            prepareSteps();
+            autoScrollState.playing = true;
+            autoScrollState.startTime = 0;
+            autoScrollState.pausedAt = 0;
+            // update UI icons
+            updateAutoScrollButtons(true);
+            autoScrollState.rafId = requestAnimationFrame(tick);
+        }
+
+        function stopAutoScroll() {
+            autoScrollState.playing = false;
+            if (autoScrollState.rafId) cancelAnimationFrame(autoScrollState.rafId);
+            autoScrollState.rafId = null;
+            autoScrollState.startTime = 0;
+            autoScrollState.pausedAt = 0;
+            updateAutoScrollButtons(false);
+        }
+
+        function toggleAutoScroll() {
+            if (autoScrollState.playing) {
+                stopAutoScroll();
+            } else {
+                startAutoScroll();
+            }
+        }
+
+        function updateAutoScrollButtons(isPlaying) {
+            const icons = document.querySelectorAll('#autoScrollBtn i, #autoScrollBtn_fs i');
+            icons.forEach(ic => {
+                ic.className = isPlaying ? 'fas fa-pause' : 'fas fa-play';
+            });
+        }
+
+        // wire up main header button and future fullscreen copy
+        autoScrollBtn.addEventListener('click', () => {
+            prepareSteps();
+            toggleAutoScroll();
+        });
+
+        // delegate clicks on potential fullscreen copy button
+        document.addEventListener('click', (e) => {
+            const fsBtn = e.target.closest('#autoScrollBtn_fs');
+            if (fsBtn) {
+                prepareSteps();
+                toggleAutoScroll();
+            }
+        });
+
+        // stop auto-scroll when exiting fullscreen
+        function stopAutoScrollOnExit() {
+            if (autoScrollState.playing) stopAutoScroll();
+        }
         // ========== 全屏逻辑结束 ==========
         // 页面加载后执行
         window.addEventListener('DOMContentLoaded', async () => {
