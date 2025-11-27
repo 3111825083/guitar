@@ -167,7 +167,7 @@
             loadingTip.textContent = '正在加载谱子图片...';
 
             function loadNextPage() {
-                const imgUrl = `./source/${tabFolder}/${page}.jpg`;
+                const imgUrl = `./source/${tabFolder}/${page}.png`;
                 checkImageExists(imgUrl, (exists) => {
                     if (exists) {
                         const img = document.createElement('img');
@@ -182,7 +182,7 @@
                         if (page === 1) {
                             const emptyTip = document.createElement('p');
                             emptyTip.className = 'text-center text-red-500';
-                            emptyTip.textContent = `未找到《${tabName}》的谱子图片，请检查文件夹是否存在或图片命名是否正确！`;
+                            emptyTip.textContent = `未找到《${tabName}》的png格式谱子图片，请检查文件夹是否存在或图片命名是否正确！`;
                             tabContent.appendChild(emptyTip);
                         }
                     }
