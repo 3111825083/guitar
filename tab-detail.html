@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>吉他谱详情 - 吉他谱网</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#E63946',
+                        secondary: '#457B9D',
+                        light: '#F1FAEE',
+                        dark: '#1D3557',
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .btn-action {
+                @apply px-4 py-2 rounded-lg transition-colors duration-300 flex items-center gap-2;
+            }
+        }
+    </style>
+</head>
+<body class="bg-light text-dark min-h-screen">
+    <header class="sticky top-0 bg-white shadow-sm z-50 py-4">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <a href="index.html" class="text-2xl font-bold text-primary">
+                <i class="fas fa-guitar mr-2"></i>吉他谱网
+            </a>
+            <div class="flex gap-3">
+                <button id="downloadBtn" class="btn-action bg-secondary text-white hover:bg-secondary/90">
+                    <i class="fas fa-download"></i>
+                    <span class="hidden sm:inline">下载谱子</span>
+                </button>
+                <button id="printBtn" class="btn-action border border-primary text-primary hover:bg-primary/10">
+                    <i class="fas fa-print"></i>
+                    <span class="hidden sm:inline">打印谱子</span>
+                </button>
+                <a href="index.html" class="btn-action bg-gray-200 hover:bg-gray-300">
+                    <i class="fas fa-arrow-left"></i>
+                    <span class="hidden sm:inline">返回首页</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h1 id="tabTitle" class="text-3xl font-bold mb-2">加载中...</h1>
+            <div class="flex flex-wrap gap-4 text-gray-500 mb-4" id="tabStats">
+                <span id="singerSpan"><i class="fas fa-user mr-1"></i> 加载中...</span>
+                <span id="typeSpan"><i class="fas fa-guitar mr-1"></i> 加载中...</span>
+                <span id="viewSpan"><i class="fas fa-eye mr-1"></i> 加载中...</span>
+                <span id="downloadSpan"><i class="fas fa-download mr-1"></i> 加载中...</span>
+            </div>
+            <p class="text-gray-600">调式：C调 | 难度：入门 | 拍号：4/4 | 速度：80BPM</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-center">吉他谱正文</h2>
+            <div id="tabContent" class="tab-content space-y-6">
+                <div class="text-center text-gray-500" id="loadingTip">正在加载谱子图片...</div>
+            </div>
+        </div>
+
+        <div>
+            <h2 class="text-2xl font-bold mb-6">相关吉他谱推荐</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="relatedTabs">
+                <!-- 动态生成相关谱子 -->
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-dark text-white py-6 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p class="mb-2">© 2025 吉他谱网 - 免费分享吉他谱资源</p>
+            <p class="text-sm text-gray-400">本站谱子仅供学习交流，禁止商用</p>
+        </div>
+    </footer>
+
+    <script>
+        // 全局变量：谱子配置数据
+        let tabsConfig = {};
+        // 从URL获取参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabId = urlParams.get('id');
+        const tabName = decodeURIComponent(urlParams.get('name') || '未知谱子');
+        const tabFolder = decodeURIComponent(urlParams.get('folder') || tabName);
+
+        // 1. 加载配置文件，获取谱子详细信息
+        async function loadTabConfig() {
+            try {
+                const response = await fetch('tabs-config.json');
+                if (!response.ok) throw new Error('配置文件加载失败');
+                tabsConfig = await response.json();
+                // 从配置中找到当前谱子的信息（通过ID匹配）
+                const currentTabKey = Object.keys(tabsConfig).find(folder => tabsConfig[folder].id === tabId);
+                const currentTab = currentTabKey ? tabsConfig[currentTabKey] : null;
+
+                if (!currentTab) {
+                    throw new Error('未找到该谱子的配置信息');
+                }
+
+                // 更新页面标题和谱子标题
+                document.title = `${tabName} - 吉他谱详情 - 吉他谱网`;
+                document.getElementById('tabTitle').textContent = `${tabName} - ${currentTab.singer}`;
+                // 更新统计信息
+                document.getElementById('singerSpan').innerHTML = `<i class="fas fa-user mr-1"></i> ${currentTab.singer}`;
+                document.getElementById('typeSpan').innerHTML = `<i class="fas fa-guitar mr-1"></i> ${currentTab.type}谱`;
+                document.getElementById('viewSpan').innerHTML = `<i class="fas fa-eye mr-1"></i> ${currentTab.view}次浏览`;
+                document.getElementById('downloadSpan').innerHTML = `<i class="fas fa-download mr-1"></i> ${currentTab.download}次下载`;
+
+                // 生成相关谱子推荐
+                generateRelatedTabs(currentTabKey);
+            } catch (error) {
+                document.getElementById('tabTitle').textContent = '加载失败';
+                document.getElementById('tabStats').innerHTML = `<span class="text-red-500">${error.message}</span>`;
+                console.error('加载谱子配置失败：', error);
+            }
+        }
+
+        // 2. 生成相关谱子推荐（排除当前谱子）
+        function generateRelatedTabs(currentFolder) {
+            const relatedTabs = document.getElementById('relatedTabs');
+            // 取前3个非当前谱子的项作为推荐
+            const otherTabs = Object.keys(tabsConfig).filter(folder => folder !== currentFolder).slice(0, 3);
+            otherTabs.forEach(folderName => {
+                const tab = tabsConfig[folderName];
+                const relatedItem = document.createElement('div');
+                relatedItem.className = 'bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow duration-300 cursor-pointer';
+                relatedItem.onclick = () => {
+                    window.location.href = `tab-detail.html?id=${tab.id}&name=${encodeURIComponent(folderName)}&folder=${encodeURIComponent(folderName)}`;
+                };
+                relatedItem.innerHTML = `
+                    <h3 class="text-lg font-semibold mb-1">${folderName}</h3>
+                    <p class="text-gray-500 text-sm mb-3">${tab.singer} | ${tab.type}谱</p>
+                    <img src="${tab.cover}" alt="${folderName}吉他谱封面" class="w-full h-32 object-cover rounded-md">
+                `;
+                relatedTabs.appendChild(relatedItem);
+            });
+        }
+
+        // 3. 动态加载谱子图片（原有逻辑不变）
+        const tabContent = document.getElementById('tabContent');
+        const loadingTip = document.getElementById('loadingTip');
+        const maxPage = 5;
+
+        function checkImageExists(url, callback) {
+            const img = new Image();
+            img.onload = () => callback(true);
+            img.onerror = () => callback(false);
+            img.src = url;
+        }
+
+        function loadTabImages() {
+            let page = 1;
+            loadingTip.textContent = '正在加载谱子图片...';
+
+            function loadNextPage() {
+                const imgUrl = `./${tabFolder}/${page}.jpg`;
+                checkImageExists(imgUrl, (exists) => {
+                    if (exists) {
+                        const img = document.createElement('img');
+                        img.src = imgUrl;
+                        img.alt = `${tabName}吉他谱第${page}页`;
+                        img.className = 'w-full max-w-3xl mx-auto rounded-md shadow-sm';
+                        tabContent.appendChild(img);
+                        page++;
+                        loadNextPage();
+                    } else {
+                        loadingTip.remove();
+                        if (page === 1) {
+                            const emptyTip = document.createElement('p');
+                            emptyTip.className = 'text-center text-red-500';
+                            emptyTip.textContent = `未找到《${tabName}》的谱子图片，请检查文件夹是否存在或图片命名是否正确！`;
+                            tabContent.appendChild(emptyTip);
+                        }
+                    }
+                });
+            }
+            loadNextPage();
+        }
+
+        // 4. 下载和打印功能（原有逻辑不变）
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            alert(`开始下载《${tabName}》的所有谱子图片！\n实际项目中可使用JSZip打包文件夹内的图片后下载`);
+        });
+
+        document.getElementById('printBtn').addEventListener('click', () => {
+            window.print();
+        });
+
+        if (window.matchMedia) {
+            const mediaQuery = window.matchMedia('print');
+            mediaQuery.addEventListener('change', (e) => {
+                if (e.matches) {
+                    document.querySelector('header').style.display = 'none';
+                    document.querySelector('footer').style.display = 'none';
+                    document.querySelector('#relatedTabs').style.display = 'none';
+                } else {
+                    document.querySelector('header').style.display = 'block';
+                    document.querySelector('footer').style.display = 'block';
+                    document.querySelector('#relatedTabs').style.display = 'grid';
+                }
+            });
+        }
+
+        // 页面加载后执行
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadTabConfig(); // 先加载配置
+            loadTabImages();      // 再加载图片
+        });
+    </script>
+</body>
+</html>

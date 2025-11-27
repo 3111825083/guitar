@@ -1,0 +1,34 @@
+{
+  "晴天": {
+    "id": "1",
+    "singer": "周杰伦",
+    "type": "弹唱",
+    "view": "2.3万",
+    "download": "892",
+    "cover": "https://picsum.photos/seed/guitar1/300/200"
+  },
+  "成都": {
+    "id": "2",
+    "singer": "赵雷",
+    "type": "弹唱",
+    "view": "5.6万",
+    "download": "2156",
+    "cover": "https://picsum.photos/seed/guitar2/300/200"
+  },
+  "卡农": {
+    "id": "3",
+    "singer": "经典曲",
+    "type": "指弹",
+    "view": "3.1万",
+    "download": "1024",
+    "cover": "https://picsum.photos/seed/guitar3/300/200"
+  },
+  "七里香": {
+    "id": "4",
+    "singer": "周杰伦",
+    "type": "弹唱",
+    "view": "1.8万",
+    "download": "753",
+    "cover": "https://picsum.photos/seed/guitar4/300/200"
+  }
+}
