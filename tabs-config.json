@@ -23,16 +23,8 @@
     "download": "1024",
     "cover": "https://picsum.photos/seed/guitar3/300/200"
   },
-  "七里香": {
-    "id": "4",
-    "singer": "周杰伦",
-    "type": "弹唱",
-    "view": "1.8万",
-    "download": "753",
-    "cover": "https://picsum.photos/seed/guitar4/300/200"
-  },
   "我们俩": {
-    "id": "5",
+    "id": "4",
     "singer": "1",
     "type": "弹唱",
     "view": "1.8万",
