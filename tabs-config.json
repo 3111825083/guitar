@@ -5,7 +5,41 @@
     "type": "弹唱",
     "view": "2.3万",
     "download": "892",
-    "cover": "https://picsum.photos/seed/guitar1/300/200"
+    "cover": "https://picsum.photos/seed/guitar1/300/200",
+    "scroll": [
+      {
+        "time": 0,
+        "position": 0
+      },
+      {
+        "time": 32,
+        "position": 1080
+      },
+      {
+        "time": 42,
+        "position": 1620
+      },
+      {
+        "time": 53,
+        "position": 2580
+      },
+      {
+        "time": 60,
+        "position": 3060
+      },
+      {
+        "time": 69,
+        "position": 3660
+      },
+      {
+        "time": 77,
+        "position": 4080
+      },
+      {
+        "time": 92,
+        "position": 4620
+      }
+    ]
   },
   "成都": {
     "id": "2",
@@ -13,7 +47,13 @@
     "type": "弹唱",
     "view": "5.6万",
     "download": "2156",
-    "cover": "https://picsum.photos/seed/guitar2/300/200"
+    "cover": "https://picsum.photos/seed/guitar2/300/200",
+    "scroll": [
+      {
+        "time": 0,
+        "position": 0
+      }
+    ]
   },
   "卡农": {
     "id": "3",
@@ -21,7 +61,13 @@
     "type": "指弹",
     "view": "3.1万",
     "download": "1024",
-    "cover": "https://picsum.photos/seed/guitar3/300/200"
+    "cover": "https://picsum.photos/seed/guitar3/300/200",
+    "scroll": [
+      {
+        "time": 0,
+        "position": 0
+      }
+    ]
   },
   "我们俩": {
     "id": "4",
@@ -29,6 +75,108 @@
     "type": "弹唱",
     "view": "1.8万",
     "download": "753",
-    "cover": "https://picsum.photos/seed/guitar4/300/200"
+    "cover": "https://picsum.photos/seed/guitar4/300/200",
+    "scroll": [
+      {
+        "time": 0,
+        "position": 0
+      }
+    ]
+  },
+  "十年": {
+    "id": "5",
+    "singer": "陈奕迅",
+    "type": "弹唱",
+    "view": "1.8万",
+    "download": "753",
+    "cover": "https://picsum.photos/seed/guitar4/300/200",
+    "scroll": [
+      {
+        "time": 0,
+        "position": 0
+      },
+      {
+        "time": 14,
+        "position": 0
+      },
+      {
+        "time": 14,
+        "position": 360
+      },
+      {
+        "time": 28,
+        "position": 840
+      },
+      {
+        "time": 40,
+        "position": 1260
+      },
+      {
+        "time": 50,
+        "position": 1680
+      },
+      {
+        "time": 62,
+        "position": 2340
+      },
+      {
+        "time": 69,
+        "position": 2820
+      },
+      {
+        "time": 81,
+        "position": 3240
+      },
+      {
+        "time": 93,
+        "position": 3720
+      }
+    ]
+  },
+  "晚安": {
+    "id": "6",
+    "singer": "颜人中",
+    "type": "指弹",
+    "view": "3.1万",
+    "download": "1024",
+    "cover": "https://picsum.photos/seed/guitar3/300/200",
+    "scroll": [
+      {
+        "time": 0,
+        "position": 0
+      },
+      {
+        "time": 23,
+        "position": 360
+      },
+      {
+        "time": 35,
+        "position": 840
+      },
+      {
+        "time": 49,
+        "position": 1320
+      },
+      {
+        "time": 62,
+        "position": 1800
+      },
+      {
+        "time": 74,
+        "position": 2280
+      },
+      {
+        "time": 75,
+        "position": 2580
+      },
+      {
+        "time": 90,
+        "position": 3060
+      },
+      {
+        "time": 103,
+        "position": 3480
+      }
+    ]
   }
 }
