@@ -167,7 +167,7 @@
             loadingTip.textContent = '正在加载谱子图片...';
 
             function loadNextPage() {
-                const imgUrl = `./${tabFolder}/${page}.jpg`;
+                const imgUrl = `./source/${tabFolder}/${page}.jpg`;
                 checkImageExists(imgUrl, (exists) => {
                     if (exists) {
                         const img = document.createElement('img');
