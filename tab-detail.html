@@ -58,10 +58,27 @@
                     <i class="fas fa-expand"></i>
                     <span class="hidden sm:inline">全屏查看</span>
                 </button>
-                <button id="autoScrollBtn" class="btn-action border border-primary text-primary hover:bg-primary/10" title="自动滚动">
-                    <i class="fas fa-play"></i>
-                    <span class="hidden sm:inline">自动滚动</span>
-                </button>
+                <div class="relative group">
+                    <button id="autoScrollBtn" class="btn-action border border-primary text-primary hover:bg-primary/10" title="自动滚动">
+                        <i class="fas fa-play"></i>
+                        <span class="hidden sm:inline">自动滚动</span>
+                    </button>
+                    <!-- 滚动模式和速度控制面板 -->
+                    <div class="hidden group-hover:block absolute top-full mt-2 right-0 bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-40 w-48">
+                        <div class="mb-3">
+                            <label class="block text-sm font-semibold mb-2">滚动模式</label>
+                            <select id="scrollMode" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+                                <option value="custom">自定义时间戳</option>
+                                <option value="uniform">匀速滚动</option>
+                            </select>
+                        </div>
+                        <div id="uniformSpeedControl" class="hidden">
+                            <label class="block text-sm font-semibold mb-2">速度 (px/s)</label>
+                            <input type="range" id="scrollSpeed" min="50" max="500" value="100" step="10" class="w-full">
+                            <span id="speedDisplay" class="text-xs text-gray-500">100 px/s</span>
+                        </div>
+                    </div>
+                </div>
                 <button id="downloadBtn" class="btn-action bg-secondary text-white hover:bg-secondary/90">
                     <i class="fas fa-download"></i>
                     <span class="hidden sm:inline">下载谱子</span>
@@ -313,13 +330,46 @@
         });
         // ========== 新增：自动滚动逻辑 ==========
         const autoScrollBtn = document.getElementById('autoScrollBtn');
+        const scrollModeSelect = document.getElementById('scrollMode');
+        const scrollSpeedInput = document.getElementById('scrollSpeed');
+        const speedDisplay = document.getElementById('speedDisplay');
+        const uniformSpeedControl = document.getElementById('uniformSpeedControl');
+        
         let autoScrollState = {
             playing: false,
             rafId: null,
             startTime: 0,
             pausedAt: 0,
-            steps: []
+            steps: [],
+            mode: 'custom', // 'custom' 或 'uniform'
+            speed: 100 // 匀速模式下的速度 px/s
         };
+
+        // 监听模式切换
+        scrollModeSelect.addEventListener('change', (e) => {
+            autoScrollState.mode = e.target.value;
+            if (e.target.value === 'uniform') {
+                uniformSpeedControl.classList.remove('hidden');
+            } else {
+                uniformSpeedControl.classList.add('hidden');
+            }
+            // 如果正在播放，重新开始
+            if (autoScrollState.playing) {
+                stopAutoScroll();
+                startAutoScroll();
+            }
+        });
+
+        // 监听速度调节
+        scrollSpeedInput.addEventListener('input', (e) => {
+            autoScrollState.speed = parseInt(e.target.value);
+            speedDisplay.textContent = `${autoScrollState.speed} px/s`;
+            // 如果正在播放，重新开始
+            if (autoScrollState.playing) {
+                stopAutoScroll();
+                startAutoScroll();
+            }
+        });
 
         function getScrollTarget() {
             // 如果在全屏模式，滚动目标是全屏容器，否则滚动页面主区域（tabContent 的父容器）
@@ -334,6 +384,12 @@
             // 按时间排序
             steps.sort((a,b) => a.time - b.time);
             autoScrollState.steps = steps;
+            
+            // 计算总滚动高度和总时间（用于匀速模式）
+            if (autoScrollState.mode === 'uniform' && steps.length > 0) {
+                const lastStep = steps[steps.length - 1];
+                autoScrollState.totalDuration = Math.max(lastStep.position / autoScrollState.speed, 1);
+            }
         }
 
         function tick(now) {
@@ -344,22 +400,34 @@
             const target = getScrollTarget();
             if (!steps.length) return;
 
-            // find current segment
-            let i = 0;
-            while (i < steps.length-1 && elapsed >= steps[i+1].time) i++;
-            const s1 = steps[i];
-            const s2 = (i < steps.length-1) ? steps[i+1] : null;
-            let pos = s1.position;
-            if (s2) {
-                const dt = s2.time - s1.time;
-                const t = dt === 0 ? 0 : (elapsed - s1.time) / dt;
-                const clamped = Math.max(0, Math.min(1, t));
-                pos = s1.position + (s2.position - s1.position) * clamped;
-            } else {
-                // after last step, keep at last position and stop
+            let pos = 0;
+
+            if (autoScrollState.mode === 'custom') {
+                // 自定义时间戳模式：按照步骤插值
+                let i = 0;
+                while (i < steps.length-1 && elapsed >= steps[i+1].time) i++;
+                const s1 = steps[i];
+                const s2 = (i < steps.length-1) ? steps[i+1] : null;
                 pos = s1.position;
-                // stop playback when elapsed exceeds last time + 1s buffer
-                if (elapsed > s1.time + 1) {
+                if (s2) {
+                    const dt = s2.time - s1.time;
+                    const t = dt === 0 ? 0 : (elapsed - s1.time) / dt;
+                    const clamped = Math.max(0, Math.min(1, t));
+                    pos = s1.position + (s2.position - s1.position) * clamped;
+                } else {
+                    // after last step, keep at last position and stop
+                    pos = s1.position;
+                    // stop playback when elapsed exceeds last time + 1s buffer
+                    if (elapsed > s1.time + 1) {
+                        stopAutoScroll();
+                    }
+                }
+            } else if (autoScrollState.mode === 'uniform') {
+                // 匀速模式：以恒定速度滚动
+                pos = autoScrollState.speed * elapsed;
+                const lastStep = steps[steps.length - 1];
+                if (pos >= lastStep.position) {
+                    pos = lastStep.position;
                     stopAutoScroll();
                 }
             }
