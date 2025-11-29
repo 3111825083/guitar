@@ -362,10 +362,40 @@
             steps.sort((a,b) => a.time - b.time);
             autoScrollState.steps = steps;
             
+            // 如果配置里只有起点（比如很多谱子没有配置滚动），尝试从页面内容自动生成位置
+            const needAutoGenerate = (steps.length === 1 && steps[0].time === 0 && steps[0].position === 0);
+            if (needAutoGenerate) {
+                // 选择用于测量的位置源：全屏容器优先，其次页面内的 tabContent
+                const measureRoot = (isFullscreen && fullscreenContainer) ? fullscreenContainer : tabContent;
+                const imgs = measureRoot ? Array.from(measureRoot.querySelectorAll('img')) : [];
+                if (imgs.length > 0) {
+                    // 以每张图片的 offsetTop 生成时间戳。时间间隔取默认 5s/页，可根据需要调整或改为基于速度计算。
+                    const interval = 5; // seconds per page (fallback)
+                    const generated = imgs.map((img, idx) => {
+                        // 计算相对于容器的纵向位置
+                        let pos = img.offsetTop || 0;
+                        // 保证为整数
+                        pos = Math.round(pos);
+                        return { time: idx * interval, position: pos };
+                    });
+                    // 如果最后一页位置与容器的最大滚动高度接近，确保最后一步包含最大滚动位置
+                    const target = (isFullscreen && fullscreenContainer) ? fullscreenContainer : document.scrollingElement || document.documentElement;
+                    const maxScroll = (target && typeof target.scrollHeight === 'number' && typeof target.clientHeight === 'number') ? Math.max(0, target.scrollHeight - target.clientHeight) : null;
+                    if (maxScroll !== null && generated.length) {
+                        const last = generated[generated.length - 1];
+                        if (Math.abs(last.position - maxScroll) > 20) {
+                            generated.push({ time: generated[generated.length - 1].time + interval, position: Math.round(maxScroll) });
+                        }
+                    }
+                    autoScrollState.steps = generated;
+                }
+            }
+
             // 计算总滚动高度和总时间（用于匀速模式）
-            if (autoScrollState.mode === 'uniform' && steps.length > 0) {
-                const lastStep = steps[steps.length - 1];
-                autoScrollState.totalDuration = Math.max(lastStep.position / autoScrollState.speed, 1);
+            if (autoScrollState.mode === 'uniform') {
+                // 取最后一步位置作为目标（如果 steps 被自动生成过，这里会使用新的值）
+                const lastStep = autoScrollState.steps && autoScrollState.steps.length ? autoScrollState.steps[autoScrollState.steps.length - 1] : { position: 0 };
+                autoScrollState.totalDuration = Math.max((lastStep.position || 0) / Math.max(1, autoScrollState.speed), 1);
             }
         }
 
