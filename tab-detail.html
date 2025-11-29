@@ -58,27 +58,11 @@
                     <i class="fas fa-expand"></i>
                     <span class="hidden sm:inline">全屏查看</span>
                 </button>
-                <div class="relative group">
-                    <button id="autoScrollBtn" class="btn-action border border-primary text-primary hover:bg-primary/10" title="自动滚动">
-                        <i class="fas fa-play"></i>
-                        <span class="hidden sm:inline">自动滚动</span>
-                    </button>
-                    <!-- 滚动模式和速度控制面板 -->
-                    <div class="hidden group-hover:block absolute top-full mt-2 right-0 bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-40 w-48">
-                        <div class="mb-3">
-                            <label class="block text-sm font-semibold mb-2">滚动模式</label>
-                            <select id="scrollMode" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
-                                <option value="custom">自定义时间戳</option>
-                                <option value="uniform">匀速滚动</option>
-                            </select>
-                        </div>
-                        <div id="uniformSpeedControl" class="hidden">
-                            <label class="block text-sm font-semibold mb-2">速度 (px/s)</label>
-                            <input type="range" id="scrollSpeed" min="50" max="500" value="100" step="10" class="w-full">
-                            <span id="speedDisplay" class="text-xs text-gray-500">100 px/s</span>
-                        </div>
-                    </div>
-                </div>
+                <!-- 保留简单的自动滚动按钮，移除周围相对定位和下拉菜单 -->
+                <button id="autoScrollBtn" class="btn-action border border-primary text-primary hover:bg-primary/10" title="自动滚动">
+                    <i class="fas fa-play"></i>
+                    <span class="hidden sm:inline">自动滚动</span>
+                </button>
                 <button id="downloadBtn" class="btn-action bg-secondary text-white hover:bg-secondary/90">
                     <i class="fas fa-download"></i>
                     <span class="hidden sm:inline">下载谱子</span>
@@ -286,13 +270,34 @@
                 fsControl.style.left = '16px';
                 fsControl.style.top = '16px';
                 fsControl.style.zIndex = '60';
-                fsControl.innerHTML = `<button id="autoScrollBtn_fs" class="btn-action border border-primary text-primary hover:bg-primary/10"><i class="fas fa-play"></i><span class="hidden sm:inline">自动滚动</span></button>`;
+                fsControl.innerHTML = `
+                    <div class="flex items-center gap-2 bg-white border border-gray-200 rounded p-2">
+                        <button id="autoScrollBtn_fs" class="btn-action border border-primary text-primary hover:bg-primary/10"><i class="fas fa-play"></i><span class="hidden sm:inline">自动滚动</span></button>
+                        <button id="settingsToggle_fs" class="btn-action border border-gray-300 text-gray-600" title="设置"><i class="fas fa-cog"></i></button>
+                        <div id="settingsMenu_fs" class="hidden absolute mt-2 left-0 bg-white border border-gray-300 rounded-lg shadow-lg p-3 z-70 w-56">
+                            <div class="mb-3">
+                                <label class="block text-sm font-semibold mb-2">滚动模式</label>
+                                <select id="scrollMode_fs" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+                                    <option value="custom">自定义时间戳</option>
+                                    <option value="uniform">匀速滚动</option>
+                                </select>
+                            </div>
+                            <div id="uniformSpeedControl_fs" class="hidden">
+                                <label class="block text-sm font-semibold mb-2">速度 (px/s)</label>
+                                <input type="range" id="scrollSpeed_fs" min="50" max="500" value="100" step="10" class="w-full">
+                                <span id="speedDisplay_fs" class="text-xs text-gray-500">100 px/s</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
                 fullscreenContainer.appendChild(fsControl);
                 // 添加到body
                 document.body.appendChild(fullscreenContainer);
                 // 禁止原页面滚动
                 document.body.style.overflow = 'hidden';
                 isFullscreen = true;
+                // 绑定全屏下的模式和速度控件事件
+                bindFullscreenControls();
                 // 按钮文字切换
                 fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i><span class="hidden sm:inline">退出全屏</span>';
                 // 进入全屏时启用自动滚动按钮
@@ -330,10 +335,6 @@
         });
         // ========== 新增：自动滚动逻辑 ==========
         const autoScrollBtn = document.getElementById('autoScrollBtn');
-        const scrollModeSelect = document.getElementById('scrollMode');
-        const scrollSpeedInput = document.getElementById('scrollSpeed');
-        const speedDisplay = document.getElementById('speedDisplay');
-        const uniformSpeedControl = document.getElementById('uniformSpeedControl');
         
         let autoScrollState = {
             playing: false,
@@ -345,31 +346,7 @@
             speed: 100 // 匀速模式下的速度 px/s
         };
 
-        // 监听模式切换
-        scrollModeSelect.addEventListener('change', (e) => {
-            autoScrollState.mode = e.target.value;
-            if (e.target.value === 'uniform') {
-                uniformSpeedControl.classList.remove('hidden');
-            } else {
-                uniformSpeedControl.classList.add('hidden');
-            }
-            // 如果正在播放，重新开始
-            if (autoScrollState.playing) {
-                stopAutoScroll();
-                startAutoScroll();
-            }
-        });
-
-        // 监听速度调节
-        scrollSpeedInput.addEventListener('input', (e) => {
-            autoScrollState.speed = parseInt(e.target.value);
-            speedDisplay.textContent = `${autoScrollState.speed} px/s`;
-            // 如果正在播放，重新开始
-            if (autoScrollState.playing) {
-                stopAutoScroll();
-                startAutoScroll();
-            }
-        });
+        // 注意：滚动模式/速度的绑定将在全屏模式下由 bindFullscreenControls() 动态绑定
 
         function getScrollTarget() {
             // 如果在全屏模式，滚动目标是全屏容器，否则滚动页面主区域（tabContent 的父容器）
@@ -492,6 +469,80 @@
                 toggleAutoScroll();
             }
         });
+
+        // 在全屏下绑定模式/速度控件（动态绑定，因为全屏容器是运行时创建的）
+        function bindFullscreenControls() {
+            if (!fullscreenContainer) return;
+            const fsAutoBtn = document.getElementById('autoScrollBtn_fs');
+            const settingsToggle = document.getElementById('settingsToggle_fs');
+            const settingsMenu = document.getElementById('settingsMenu_fs');
+            const scrollMode_fs = document.getElementById('scrollMode_fs');
+            const scrollSpeed_fs = document.getElementById('scrollSpeed_fs');
+            const speedDisplay_fs = document.getElementById('speedDisplay_fs');
+            const uniformControl_fs = document.getElementById('uniformSpeedControl_fs');
+
+            // 初始化显示值
+            if (speedDisplay_fs) speedDisplay_fs.textContent = `${autoScrollState.speed} px/s`;
+            if (scrollMode_fs) scrollMode_fs.value = autoScrollState.mode || 'custom';
+            if (uniformControl_fs) {
+                if (autoScrollState.mode === 'uniform') uniformControl_fs.classList.remove('hidden');
+                else uniformControl_fs.classList.add('hidden');
+            }
+
+            // 自动滚动按钮（全屏）
+            if (fsAutoBtn) {
+                fsAutoBtn.addEventListener('click', (evt) => {
+                    evt.stopPropagation();
+                    prepareSteps();
+                    toggleAutoScroll();
+                });
+            }
+
+            // 设置菜单切换
+            if (settingsToggle && settingsMenu) {
+                settingsToggle.addEventListener('click', (evt) => {
+                    evt.stopPropagation();
+                    settingsMenu.classList.toggle('hidden');
+                });
+            }
+
+            // 点击全屏容器任意位置（非菜单和按钮）时关闭菜单
+            if (fullscreenContainer) {
+                fullscreenContainer.addEventListener('click', (evt) => {
+                    if (!evt.target.closest('#settingsMenu_fs') && !evt.target.closest('#settingsToggle_fs')) {
+                        if (settingsMenu) settingsMenu.classList.add('hidden');
+                    }
+                });
+            }
+
+            // 滚动模式切换（全屏）
+            if (scrollMode_fs) {
+                scrollMode_fs.addEventListener('change', (e) => {
+                    autoScrollState.mode = e.target.value;
+                    if (e.target.value === 'uniform') {
+                        if (uniformControl_fs) uniformControl_fs.classList.remove('hidden');
+                    } else {
+                        if (uniformControl_fs) uniformControl_fs.classList.add('hidden');
+                    }
+                    if (autoScrollState.playing) {
+                        stopAutoScroll();
+                        startAutoScroll();
+                    }
+                });
+            }
+
+            // 速度调节（全屏）
+            if (scrollSpeed_fs) {
+                scrollSpeed_fs.addEventListener('input', (e) => {
+                    autoScrollState.speed = parseInt(e.target.value) || 100;
+                    if (speedDisplay_fs) speedDisplay_fs.textContent = `${autoScrollState.speed} px/s`;
+                    if (autoScrollState.playing) {
+                        stopAutoScroll();
+                        startAutoScroll();
+                    }
+                });
+            }
+        }
 
         // stop auto-scroll when exiting fullscreen
         function stopAutoScrollOnExit() {
