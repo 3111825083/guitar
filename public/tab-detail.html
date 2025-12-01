@@ -356,6 +356,11 @@
                 fullscreenContainer.className = 'tab-fullscreen';
                 fullscreenContainer.style.overflow = 'auto';
                 fullscreenContainer.style.paddingTop = '80px'; // 为悬浮按钮预留空间
+                // 确保 fullscreenContainer 能响应滚轮（部分浏览器/环境需要明确设置）
+                fullscreenContainer.style.pointerEvents = 'auto';
+                fullscreenContainer.setAttribute('tabindex', '0');
+                // Passive wheel listener to ensure default scrolling works inside the container
+                fullscreenContainer.addEventListener('wheel', function() {}, { passive: true });
                 
                 // 复制谱子内容（深拷贝，保留图片）
                 fullscreenContainer.appendChild(tabContent.cloneNode(true));
@@ -409,6 +414,9 @@
                 isFullscreen = true;
                 // 绑定全屏下的模式和速度控件事件
                 bindFullscreenControls();
+                // 确保全屏控件按钮可用
+                const fsAuto = document.getElementById('autoScrollBtn_fs');
+                if (fsAuto) { fsAuto.disabled = false; fsAuto.style.opacity = '1'; fsAuto.style.cursor = 'pointer'; }
                 // 进入全屏后根据全屏容器内的图片重新生成 steps（如果需要）
                 prepareSteps();
                 // 按钮文字切换
@@ -480,8 +488,22 @@
             // 按时间排序
             steps.sort((a,b) => a.time - b.time);
             autoScrollState.steps = steps;
-            // Debug: 输出计算得到的 steps，便于核对
-            try { console.debug('prepareSteps -> mode:', autoScrollState.mode, 'steps:', JSON.parse(JSON.stringify(autoScrollState.steps))); } catch(e) {}
+            // 为每一段计算速度（px/s），便于校验与调试
+            try {
+                for (let k = 0; k < autoScrollState.steps.length; k++) {
+                    const cur = autoScrollState.steps[k];
+                    const next = autoScrollState.steps[k+1] || null;
+                    if (next) {
+                        const dt = next.time - cur.time;
+                        cur.segmentSpeed = (dt > 0) ? ((next.position - cur.position) / dt) : 0;
+                    } else {
+                        cur.segmentSpeed = 0;
+                    }
+                }
+                // 记录 custom 模式的目标结束位置（最后一个时间点的位置）
+                autoScrollState.customEndPosition = autoScrollState.steps.length ? autoScrollState.steps[autoScrollState.steps.length - 1].position : 0;
+                console.debug('prepareSteps -> mode:', autoScrollState.mode, 'steps:', JSON.parse(JSON.stringify(autoScrollState.steps)));
+            } catch(e) {}
             
             // 如果配置里只有起点（比如很多谱子没有配置滚动），尝试从页面内容自动生成位置
             const needAutoGenerate = (steps.length === 1 && steps[0].time === 0 && steps[0].position === 0);
@@ -543,23 +565,17 @@
                     const clamped = Math.max(0, Math.min(1, t));
                     pos = s1.position + (s2.position - s1.position) * clamped;
                 } else {
-                    // after last step: continue moving using the last segment's speed
+                    // 到达最后一个时间点：直接停在最后定义的位置，不再继续滚动到页面底部
                     const last = s1;
-                    const prev = (i > 0) ? steps[i-1] : null;
-                    // 计算最后一段速度（px/s），若无前一段则使用 autoScrollState.speed 作为回退
-                    let lastSpeed = autoScrollState.speed || 100;
-                    if (prev) {
-                        const dtp = last.time - prev.time;
-                        if (dtp > 0) lastSpeed = (last.position - prev.position) / dtp;
-                    }
-                    const extra = Math.max(0, elapsed - last.time);
-                    pos = last.position + lastSpeed * extra;
-                    // 如果已知最大滚动位置，限制并在到达谱子末尾时停止
-                    if (typeof autoScrollState.maxScroll === 'number') {
-                        if (pos >= autoScrollState.maxScroll) {
-                            pos = autoScrollState.maxScroll;
-                            stopAutoScroll();
-                        }
+                    pos = last.position;
+                    // 当 elapsed 已超过最后时间点时结束播放
+                    if (elapsed >= last.time) {
+                        // 应用最终位置后停止自动滚动
+                        try {
+                            const t = getScrollTarget();
+                            t.scrollTop = pos;
+                        } catch (e) {}
+                        stopAutoScroll();
                     }
                 }
             } else if (autoScrollState.mode === 'uniform') {

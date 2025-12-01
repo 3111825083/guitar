@@ -9,11 +9,15 @@
     "scroll": [
       {
         "time": 1,
-        "position": 62
+        "position": 313
       },
       {
-        "time": 3,
-        "position": 1226
+        "time": 5,
+        "position": 1414
+      },
+      {
+        "time": 9,
+        "position": 2341
       }
     ]
   },
