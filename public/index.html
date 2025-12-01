@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>吉他谱网 - 免费吉他谱分享平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#E63946',
+                        secondary: '#457B9D',
+                        light: '#F1FAEE',
+                        dark: '#1D3557',
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .谱-item {
+                @apply bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-4 cursor-pointer;
+            }
+            .btn-collect {
+                @apply flex items-center gap-2 px-4 py-2 rounded-lg border border-primary text-primary hover:bg-primary/10 transition-colors duration-300;
+            }
+            .btn-collect-active {
+                @apply bg-primary text-white hover:bg-primary/90;
+            }
+        }
+    </style>
+</head>
+<body class="bg-light text-dark min-h-screen flex flex-col">
+    <!-- 导航栏 + 搜索区 -->
+    <header class="sticky top-0 bg-white shadow-sm z-50 py-4">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <a href="index.html" class="text-2xl font-bold text-primary">
+                    <i class="fas fa-guitar mr-2"></i>吉他谱网
+                </a>
+                <div class="w-full md:w-1/2 relative">
+                    <input 
+                        type="text" 
+                        id="searchInput"
+                        placeholder="搜索歌曲名/歌手/谱子类型（弹唱/指弹）..."
+                        class="w-full px-4 py-3 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                    >
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <button id="collectCenterBtn" class="btn-collect">
+                    <i class="fas fa-star"></i>
+                    <span class="hidden sm:inline">我的收藏</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 吉他谱列表区：空容器，由JS动态生成 -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <h2 class="text-2xl font-bold mb-6">热门吉他谱</h2>
+        <div id="tabList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- 加载提示 -->
+            <div class="col-span-full text-center text-gray-500 py-10" id="loadingTip">
+                正在加载吉他谱列表...
+            </div>
+            <!-- 动态生成的谱子项将插入这里 -->
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-6">
+        <div class="container mx-auto px-4 text-center">
+            <p class="mb-2">© 2025 吉他谱网 - 免费分享吉他谱资源</p>
+            <p class="text-sm text-gray-400">本站谱子仅供学习交流，禁止商用</p>
+        </div>
+    </footer>
+
+    <script>
+        // 全局变量：存储谱子配置数据和收藏状态
+        let tabsConfig = {};
+        let collectedIds = JSON.parse(localStorage.getItem('collectedTabs')) || [];
+
+        // API 基础地址（自适应环境）
+        const API_BASE = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000/api'
+            : `${window.location.protocol}//${window.location.host}/api`;
+
+        // 1. 加载谱子配置文件，动态生成列表
+        async function loadTabsList() {
+            const tabList = document.getElementById('tabList');
+            const loadingTip = document.getElementById('loadingTip');
+            try {
+                // 加载配置文件（从 API 获取）
+                const response = await fetch(`${API_BASE}/tabs`);
+                if (!response.ok) throw new Error('配置文件加载失败');
+                tabsConfig = await response.json();
+
+                // 清空加载提示
+                loadingTip.remove();
+
+                // 遍历配置文件的键（文件夹名=歌曲名），生成谱子项
+                Object.keys(tabsConfig).forEach(folderName => {
+                    const tab = tabsConfig[folderName];
+                    const isCollected = collectedIds.includes(tab.id);
+
+                    // 创建谱子项元素
+                    const tabItem = document.createElement('div');
+                    tabItem.className = '谱-item';
+                    tabItem.dataset.id = tab.id;
+                    tabItem.dataset.name = folderName; // 文件夹名作为歌曲名
+                    tabItem.dataset.folder = folderName;
+                    tabItem.dataset.singer = tab.singer;
+                    tabItem.dataset.type = tab.type;
+                    tabItem.innerHTML = `
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="text-lg font-semibold">${folderName}</h3>
+                                <p class="text-gray-500 text-sm">${tab.singer} | ${tab.type}谱</p>
+                            </div>
+                            <button class="collect-btn text-xl ${isCollected ? 'text-primary' : 'text-gray-400'} hover:text-primary" data-id="${tab.id}">
+                                <i class="fas fa-star ${isCollected ? 'fa-solid' : 'fa-regular'}"></i>
+                            </button>
+                        </div>
+                        <img src="${tab.cover}" alt="${folderName}吉他谱封面" class="w-full h-40 object-cover rounded-md mb-3">
+                        <div class="flex justify-between text-sm text-gray-500">
+                            <span><i class="fas fa-eye mr-1"></i> ${tab.view}</span>
+                            <span><i class="fas fa-download mr-1"></i> ${tab.download}</span>
+                        </div>
+                    `;
+                    tabList.appendChild(tabItem);
+                });
+
+                // 绑定收藏按钮和跳转事件（需在列表生成后执行）
+                bindEvents();
+            } catch (error) {
+                loadingTip.textContent = `加载失败：${error.message}`;
+                loadingTip.className = 'col-span-full text-center text-red-500 py-10';
+                console.error('加载谱子列表失败：', error);
+            }
+        }
+
+        // 2. 绑定收藏、跳转、搜索事件
+        function bindEvents() {
+            const collectBtns = document.querySelectorAll('.collect-btn');
+            const tabItems = document.querySelectorAll('.谱-item');
+            const searchInput = document.getElementById('searchInput');
+
+            // 收藏按钮事件
+            collectBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const tabId = btn.dataset.id;
+                    if (collectedIds.includes(tabId)) {
+                        // 取消收藏
+                        collectedIds = collectedIds.filter(id => id !== tabId);
+                        btn.classList.remove('text-primary');
+                        btn.querySelector('i').classList.replace('fa-solid', 'fa-regular');
+                    } else {
+                        // 收藏
+                        collectedIds.push(tabId);
+                        btn.classList.add('text-primary');
+                        btn.querySelector('i').classList.replace('fa-regular', 'fa-solid');
+                    }
+                    localStorage.setItem('collectedTabs', JSON.stringify(collectedIds));
+                });
+            });
+
+            // 谱子项跳转事件
+            tabItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const tabId = item.dataset.id;
+                    const tabName = item.dataset.name;
+                    const tabFolder = item.dataset.folder;
+                    window.location.href = `tab-detail.html?id=${tabId}&name=${encodeURIComponent(tabName)}&folder=${encodeURIComponent(tabFolder)}`;
+                });
+            });
+
+            // 搜索功能（按歌曲名/歌手/谱型筛选）
+            searchInput.addEventListener('input', () => {
+                const searchText = searchInput.value.toLowerCase().trim();
+                tabItems.forEach(item => {
+                    const name = item.dataset.name.toLowerCase();
+                    const singer = item.dataset.singer.toLowerCase();
+                    const type = item.dataset.type.toLowerCase();
+                    item.style.display = (name.includes(searchText) || singer.includes(searchText) || type.includes(searchText)) 
+                        ? 'block' 
+                        : 'none';
+                });
+            });
+        }
+
+        // 3. 我的收藏中心事件
+        document.getElementById('collectCenterBtn').addEventListener('click', () => {
+            if (collectedIds.length === 0) {
+                alert('你还没有收藏任何吉他谱哦！');
+                return;
+            }
+            // 筛选收藏的谱子名（文件夹名）
+            const collectedNames = collectedIds.map(id => {
+                return Object.keys(tabsConfig).find(folder => tabsConfig[folder].id === id) || '未知谱子';
+            });
+            alert(`你收藏的谱子：\n${collectedNames.join('\n')}`);
+        });
+
+        // 页面加载完成后加载谱子列表
+        window.addEventListener('DOMContentLoaded', loadTabsList);
+    </script>
+</body>
+</html>

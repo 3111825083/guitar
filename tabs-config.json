@@ -7,9 +7,14 @@
     "download": "892",
     "cover": "https://picsum.photos/seed/guitar1/300/200",
     "scroll": [
-      { "time": 0, "position": 0 },
-      { "time": 5, "position": 600 },
-      { "time": 15, "position": 1600 }
+      {
+        "time": 1,
+        "position": 62
+      },
+      {
+        "time": 3,
+        "position": 1226
+      }
     ]
   },
   "成都": {
@@ -20,7 +25,18 @@
     "download": "2156",
     "cover": "https://picsum.photos/seed/guitar2/300/200",
     "scroll": [
-      { "time": 0, "position": 0 }
+      {
+        "time": 0,
+        "position": 0
+      },
+      {
+        "time": 5,
+        "position": 400
+      },
+      {
+        "time": 10,
+        "position": 800
+      }
     ]
   },
   "卡农": {
@@ -31,7 +47,10 @@
     "download": "1024",
     "cover": "https://picsum.photos/seed/guitar3/300/200",
     "scroll": [
-      { "time": 0, "position": 0 }
+      {
+        "time": 0,
+        "position": 0
+      }
     ]
   },
   "我们俩": {
@@ -42,7 +61,10 @@
     "download": "753",
     "cover": "https://picsum.photos/seed/guitar4/300/200",
     "scroll": [
-      { "time": 0, "position": 0 }
+      {
+        "time": 0,
+        "position": 0
+      }
     ]
   }
 }
