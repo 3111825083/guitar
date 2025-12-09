@@ -1,3 +1,3 @@
-python -m venv guitar_env
-guitar_env\Scripts\activate
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
