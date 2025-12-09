@@ -5,6 +5,7 @@ import os
 from PIL import Image, ImageTk
 
 from components.guitartab_manager import GuitarTabManager
+from fullscreen_window import FullScreenImageWindow
 
 
 class MainWindow:
@@ -414,7 +415,8 @@ class MainWindow:
 
     def toggle_fullscreen(self, event):
         """切换全屏模式"""
-        messagebox.showinfo("全屏", "全屏功能待实现")
+        fullscreen_window = FullScreenImageWindow(self)
+        fullscreen_window.load_image(self.current_tab_name)
 
     def key_press_event(self, event):
         """处理按键事件"""
