@@ -481,21 +481,22 @@ class FullScreenImageWindow(QMainWindow):
         # 直接传递滚轮事件给滚动区域进行垂直滚动
         self.scroll_area.wheelEvent(event)
 
+    # 修改 guitar_app.py 中的 FullScreenImageWindow 类的 add_timestamp 方法
+
     def add_timestamp(self):
         """添加时间戳点并保存到配置文件"""
         # 获取当前滚动位置
         current_pos = self.scroll_area.verticalScrollBar().value()
 
-        # 弹出对话框让用户输入时间
-        dialog = QInputDialog(self)
+        # 创建自定义对话框
+        dialog = QDialog(self)
         dialog.setWindowTitle("添加时间戳")
-        dialog.setLabelText("请输入时间 (格式: A分BC秒 例如: 1分23秒 或 2分05秒):")
-        dialog.setInputMode(QInputDialog.TextInput)
-        dialog.resize(400, 120)
+        dialog.setModal(True)
+        dialog.resize(400, 200)
 
-        # 美化对话框样式 - 白色主题
+        # 设置对话框样式
         dialog.setStyleSheet("""
-            QInputDialog {
+            QDialog {
                 background-color: white;
             }
             QLabel {
@@ -509,6 +510,10 @@ class FullScreenImageWindow(QMainWindow):
                 border-radius: 4px;
                 background-color: white;
                 color: #333;
+            }
+            QCheckBox {
+                color: #333;
+                background-color: white;
             }
             QDialogButtonBox {
                 background-color: white;
@@ -530,22 +535,50 @@ class FullScreenImageWindow(QMainWindow):
             }
         """)
 
-        # 显示对话框并获取结果
-        ok = dialog.exec_()
-        time_input = dialog.textValue()
+        # 创建布局
+        layout = QVBoxLayout(dialog)
 
-        if ok and time_input:
-            try:
-                # 解析时间输入
-                total_seconds = self.parse_time_input(time_input)
-                if total_seconds is not None:
-                    # 保存到配置文件
-                    self.save_timestamp_to_config(total_seconds, current_pos)
-                    print(f"添加时间戳: 时间 {total_seconds}s, 位置 {current_pos}px")
-                else:
-                    QMessageBox.warning(self, "错误", "时间格式不正确，请使用格式如: 1分23秒")
-            except Exception as e:
-                QMessageBox.warning(self, "错误", f"时间解析出错: {str(e)}")
+        # 时间输入标签和文本框
+        time_label = QLabel("请输入时间 (格式: A分BC秒 例如: 1分23秒 或 2分05秒):")
+        time_input = QLineEdit()
+        time_input.setPlaceholderText("例如: 1分23秒")
+
+        # 是否为起始点复选框，默认不选中
+        home_checkbox = QCheckBox("设为起始点")
+        home_checkbox.setChecked(False)  # 默认不选中
+
+        # 按钮
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        )
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+
+        # 添加控件到布局
+        layout.addWidget(time_label)
+        layout.addWidget(time_input)
+        layout.addWidget(home_checkbox)
+        layout.addWidget(button_box)
+
+        # 显示对话框并获取结果
+        result = dialog.exec_()
+
+        if result == QDialog.Accepted:
+            time_text = time_input.text()
+            is_home = home_checkbox.isChecked()  # 获取是否为起始点的选择
+
+            if time_text:
+                try:
+                    # 解析时间输入
+                    total_seconds = self.parse_time_input(time_text)
+                    if total_seconds is not None:
+                        # 保存到配置文件，同时传递是否为起始点的参数
+                        self.save_timestamp_to_config(total_seconds, current_pos, is_home)
+                        print(f"添加时间戳: 时间 {total_seconds}s, 位置 {current_pos}px, 起始点: {is_home}")
+                    else:
+                        QMessageBox.warning(self, "错误", "时间格式不正确，请使用格式如: 1分23秒")
+                except Exception as e:
+                    QMessageBox.warning(self, "错误", f"时间解析出错: {str(e)}")
 
     def parse_time_input(self, time_str):
         """解析'A分BC秒'格式的时间输入，返回总秒数"""
@@ -575,7 +608,9 @@ class FullScreenImageWindow(QMainWindow):
             print(f"读取时间戳数据出错: {e}")
             return []
 
-    def save_timestamp_to_config(self, timestamp_time, position):
+    # 修改 guitar_app.py 中的 FullScreenImageWindow 类的 save_timestamp_to_config 方法
+
+    def save_timestamp_to_config(self, timestamp_time, position, is_home=False):
         """保存时间戳到配置文件"""
         try:
             # 读取现有配置
@@ -590,7 +625,8 @@ class FullScreenImageWindow(QMainWindow):
                 # 添加新的时间戳点
                 new_point = {
                     'time': round(timestamp_time, 2),
-                    'position': position
+                    'position': position,
+                    'home': is_home  # 添加是否为起始点的标识
                 }
                 config[self.tab_name]['scroll'].append(new_point)
 
@@ -680,9 +716,23 @@ class FullScreenImageWindow(QMainWindow):
         # 根据时间戳数据计算当前位置
         target_position = self.calculate_position_by_time(elapsed_time, scroll_data)
 
-        # 设置滚动位置
-        scrollbar = self.scroll_area.verticalScrollBar()
-        scrollbar.setValue(int(target_position))
+        # 查找紧接的下一个时间戳点
+        next_point = None
+        for point in scroll_data:
+            if point['time'] > elapsed_time:
+                next_point = point
+                break
+        # 如果下一个点是起始点，则暂停默认滚动，等待到达该时间点
+        if next_point and next_point.get('home', False):
+            # 检查是否已到达下一个起始点时间戳的时间点
+            if elapsed_time >= next_point['time']:
+                # 已到达时间点，执行跳转
+                scrollbar = self.scroll_area.verticalScrollBar()
+                scrollbar.setValue(int(next_point['position']))
+        else:
+            # 设置滚动位置
+            scrollbar = self.scroll_area.verticalScrollBar()
+            scrollbar.setValue(int(target_position))
 
         # 检查是否已完成所有滚动
         if elapsed_time > scroll_data[-1]['time']:
