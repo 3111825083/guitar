@@ -45,6 +45,25 @@ class GuitarTabManager:
                     keyword in info.get('type', '').lower()):
                 result[name] = info
         return result
+    def add_tab(self, tab_name, tab_info):
+        """添加新歌曲"""
+        try:
+            self.tabs_data[tab_name] = tab_info
+            self.save_config()
+            return True
+        except Exception as e:
+            print(f"添加歌曲失败: {e}")
+            return False
+
+    def save_config(self):
+        """保存配置文件"""
+        try:
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(self.tabs_data, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception as e:
+            print(f"保存配置文件失败: {e}")
+            return False
 
 
 class MainWindow(QMainWindow):
@@ -73,6 +92,7 @@ class MainWindow(QMainWindow):
         # 初始化列表
         self.refresh_tab_list()
 
+    # 在 MainWindow 类的 create_list_panel 方法中添加添加歌曲按钮
     def create_list_panel(self, parent_layout):
         """创建左侧列表面板"""
         list_panel = QWidget()
@@ -84,10 +104,13 @@ class MainWindow(QMainWindow):
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("搜索歌曲名/歌手/类型...")
         self.search_input.textChanged.connect(self.on_search_changed)
-        search_btn = QPushButton("搜索")
-        search_btn.clicked.connect(self.on_search_clicked)
+
+        # 添加歌曲按钮
+        self.add_song_btn = QPushButton("+ 添加歌曲")
+        self.add_song_btn.clicked.connect(self.add_new_song)
+
         search_layout.addWidget(self.search_input)
-        search_layout.addWidget(search_btn)
+        search_layout.addWidget(self.add_song_btn)
         layout.addLayout(search_layout)
 
         # 列表
@@ -96,6 +119,174 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.tab_list_widget)
 
         parent_layout.addWidget(list_panel)
+
+    def add_new_song(self):
+        """添加新歌曲"""
+        # 创建添加歌曲对话框
+        dialog = QDialog(self)
+        dialog.setWindowTitle("添加新歌曲")
+        dialog.setModal(True)
+        dialog.resize(400, 300)
+
+        # 设置样式
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: white;
+            }
+            QLabel {
+                color: #333;
+                font-size: 12px;
+                background-color: white;
+            }
+            QLineEdit, QComboBox {
+                padding: 8px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                background-color: white;
+                color: #333;
+            }
+            QDialogButtonBox {
+                background-color: white;
+            }
+            QDialogButtonBox QPushButton {
+                background-color: white;
+                color: #333;
+                border: 1px solid #ccc;
+                padding: 6px 12px;
+                border-radius: 4px;
+                min-width: 60px;
+            }
+            QDialogButtonBox QPushButton:hover {
+                background-color: #f0f0f0;
+                border-color: #999;
+            }
+            QDialogButtonBox QPushButton:pressed {
+                background-color: #e0e0e0;
+            }
+        """)
+
+        # 创建布局
+        layout = QVBoxLayout(dialog)
+
+        # 表单布局
+        form_layout = QFormLayout()
+
+        # 输入字段
+        song_name_input = QLineEdit()
+        singer_input = QLineEdit()
+        type_combo = QComboBox()
+        type_combo.addItems(["弹唱", "指弹", "独奏", "合奏"])
+
+        form_layout.addRow("歌曲名:", song_name_input)
+        form_layout.addRow("歌手:", singer_input)
+        form_layout.addRow("类型:", type_combo)
+
+        layout.addLayout(form_layout)
+
+        # 按钮
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        )
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        layout.addWidget(button_box)
+
+        # 显示对话框
+        if dialog.exec_() == QDialog.Accepted:
+            song_name = song_name_input.text().strip()
+            singer = singer_input.text().strip()
+            song_type = type_combo.currentText()
+
+            if song_name and singer:
+                # 检查歌曲是否已存在
+                existing_tabs = self.tab_manager.get_all_tabs()
+                if song_name in existing_tabs:
+                    QMessageBox.warning(self, "警告", f"歌曲 '{song_name}' 已存在！")
+                    return
+
+                # 创建新的歌曲信息
+                new_song_info = {
+                    "id": str(len(existing_tabs) + 1),
+                    "singer": singer,
+                    "type": song_type,
+                    "view": "0",
+                    "download": "0",
+                    "cover": f"https://picsum.photos/seed/{song_name.replace(' ', '')}/300/200",
+                    "scroll": [
+                        {
+                            "time": 0,
+                            "position": 0
+                        }
+                    ]
+                }
+
+                # 添加到配置中
+                if self.tab_manager.add_tab(song_name, new_song_info):
+                    # 创建对应的文件夹
+                    source_dir = f"source/{song_name}"
+                    if not os.path.exists(source_dir):
+                        os.makedirs(source_dir)
+
+                    # 刷新列表
+                    self.refresh_tab_list()
+                    QMessageBox.information(self, "成功", f"歌曲 '{song_name}' 添加成功！")
+                else:
+                    QMessageBox.critical(self, "错误", "添加歌曲失败！")
+            else:
+                QMessageBox.warning(self, "警告", "歌曲名和歌手不能为空！")
+
+    def upload_guitar_tabs(self):
+        """上传吉他谱图片"""
+        if not self.current_tab:
+            QMessageBox.warning(self, "警告", "请先选择一首歌曲！")
+            return
+
+        # 获取当前选中的歌曲名
+        tab_name = None
+        for name, info in self.tab_manager.get_all_tabs().items():
+            if info == self.current_tab:
+                tab_name = name
+                break
+
+        if not tab_name:
+            QMessageBox.warning(self, "警告", "无法确定当前歌曲！")
+            return
+
+        # 选择图片文件
+        file_dialog = QFileDialog(self)
+        file_dialog.setFileMode(QFileDialog.ExistingFiles)
+        file_dialog.setNameFilter("Images (*.png *.jpg *.jpeg)")
+        file_dialog.setViewMode(QFileDialog.List)
+
+        if file_dialog.exec_():
+            selected_files = file_dialog.selectedFiles()
+
+            if selected_files:
+                source_dir = f"source/{tab_name}"
+
+                # 复制文件到对应目录
+                success_count = 0
+                for i, file_path in enumerate(selected_files):
+                    try:
+                        # 生成目标文件名（从第1页开始）
+                        target_filename = f"{i + 1}.png"
+                        target_path = os.path.join(source_dir, target_filename)
+
+                        # 复制文件
+                        from PIL import Image
+                        img = Image.open(file_path)
+                        img.save(target_path, 'PNG')
+                        success_count += 1
+                    except Exception as e:
+                        print(f"复制文件 {file_path} 失败: {e}")
+
+                if success_count > 0:
+                    QMessageBox.information(self, "成功", f"成功上传 {success_count} 张吉他谱图片！")
+                    # 重新加载当前歌曲的图片
+                    if self.current_tab:
+                        self.load_tab_image()
+                else:
+                    QMessageBox.warning(self, "警告", "没有成功上传任何图片！")
 
     def create_detail_panel(self, parent_layout):
         """创建右侧详情面板"""
@@ -145,11 +336,13 @@ class MainWindow(QMainWindow):
         self.prev_btn = QPushButton("上一页")
         self.next_btn = QPushButton("下一页")
         self.page_label = QLabel("第 1 页")
+        self.upload_btn = QPushButton("上传谱子")
         self.download_btn = QPushButton("下载")
         self.print_btn = QPushButton("打印")
 
         self.prev_btn.clicked.connect(self.prev_page)
         self.next_btn.clicked.connect(self.next_page)
+        self.upload_btn.clicked.connect(self.upload_guitar_tabs)
         self.download_btn.clicked.connect(self.download_tab)
         self.print_btn.clicked.connect(self.print_tab)
 
@@ -157,6 +350,7 @@ class MainWindow(QMainWindow):
         control_layout.addWidget(self.page_label)
         control_layout.addWidget(self.next_btn)
         control_layout.addStretch()
+        control_layout.addWidget(self.upload_btn)
         control_layout.addWidget(self.download_btn)
         control_layout.addWidget(self.print_btn)
         layout.addLayout(control_layout)
@@ -480,8 +674,6 @@ class FullScreenImageWindow(QMainWindow):
         """处理鼠标滚轮事件用于垂直滚动"""
         # 直接传递滚轮事件给滚动区域进行垂直滚动
         self.scroll_area.wheelEvent(event)
-
-    # 修改 guitar_app.py 中的 FullScreenImageWindow 类的 add_timestamp 方法
 
     def add_timestamp(self):
         """添加时间戳点并保存到配置文件"""
