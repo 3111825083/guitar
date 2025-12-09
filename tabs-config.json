@@ -9,35 +9,18 @@
     "scroll": [
       {
         "time": 0,
-        "position": 0
+        "position": 0,
+        "home": false
       },
       {
-        "time": 32,
-        "position": 1080
+        "time": 3,
+        "position": 540,
+        "home": false
       },
       {
-        "time": 42,
-        "position": 1620
-      },
-      {
-        "time": 53,
-        "position": 2580
-      },
-      {
-        "time": 60,
-        "position": 3060
-      },
-      {
-        "time": 69,
-        "position": 3660
-      },
-      {
-        "time": 77,
-        "position": 4080
-      },
-      {
-        "time": 92,
-        "position": 4620
+        "time": 9,
+        "position": 3540,
+        "home": true
       }
     ]
   },
