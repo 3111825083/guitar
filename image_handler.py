@@ -1,7 +1,7 @@
 # image_handler.py
 import os
 from PIL import Image
-from typing import List, Tuple
+from typing import List
 
 
 class ImageHandler:
