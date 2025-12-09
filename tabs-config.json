@@ -161,5 +161,19 @@
         "position": 3480
       }
     ]
+  },
+  "我想": {
+    "id": "7",
+    "singer": "董昱昆",
+    "type": "弹唱",
+    "view": "0",
+    "download": "0",
+    "cover": "https://picsum.photos/seed/我想/300/200",
+    "scroll": [
+      {
+        "time": 0,
+        "position": 0
+      }
+    ]
   }
 }
