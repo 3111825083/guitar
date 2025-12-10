@@ -1,0 +1,11 @@
+{
+  "data": {
+    "config_file": "source/tabs-config.json",
+    "favorites_file": "source/favorites.json"
+  },
+  "images": {
+    "source_folder": "source",
+    "supported_formats": [".png", ".jpg", ".jpeg"],
+    "combined_filename": "combined_fullscreen.png"
+  }
+}

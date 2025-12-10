@@ -13,23 +13,13 @@
         "home": false
       },
       {
-        "time": 1,
-        "position": 166,
+        "time": 5,
+        "position": 1168,
         "home": false
       },
       {
-        "time": 2,
-        "position": 648,
-        "home": false
-      },
-      {
-        "time": 3,
-        "position": 540,
-        "home": false
-      },
-      {
-        "time": 9,
-        "position": 3540,
+        "time": 10,
+        "position": 2622,
         "home": true
       }
     ]
