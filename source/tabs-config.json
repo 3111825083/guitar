@@ -9,7 +9,7 @@
     "scroll": [
       {
         "time": 0,
-        "position": 0,
+        "position": 18,
         "home": false
       },
       {
@@ -18,7 +18,7 @@
         "home": false
       },
       {
-        "time": 4,
+        "time": 5,
         "position": 2622,
         "home": true
       }
