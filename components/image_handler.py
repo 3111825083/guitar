@@ -1,4 +1,4 @@
-# image_handler.py
+# components/image_handler.py
 import os
 from PIL import Image
 from typing import List
@@ -43,39 +43,6 @@ class ImageHandler:
         except Exception as e:
             print(f"调整图片大小出错: {e}")
             return None
-
-    @staticmethod
-    def combine_images(image_paths: List[str], output_path: str):
-        """合并多张图片"""
-        if not image_paths:
-            return
-
-        images = []
-        for path in image_paths:
-            try:
-                img = Image.open(path)
-                images.append(img)
-            except Exception as e:
-                print(f"打开图片 {path} 出错: {e}")
-
-        if not images:
-            return
-
-        # 计算合并后图片的尺寸
-        total_height = sum(img.height for img in images)
-        max_width = max(img.width for img in images)
-
-        # 创建新图片
-        combined_img = Image.new('RGB', (max_width, total_height), 'white')
-
-        # 粘贴图片
-        y_offset = 0
-        for img in images:
-            combined_img.paste(img, (0, y_offset))
-            y_offset += img.height
-
-        # 保存
-        combined_img.save(output_path)
 
     @staticmethod
     def create_combined_image(tab_folder: str) -> str:
