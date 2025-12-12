@@ -8,17 +8,17 @@
     "cover": "https://picsum.photos/seed/guitar1/300/200",
     "scroll": [
       {
-        "time": 0,
-        "position": 18,
-        "home": false
-      },
-      {
-        "time": 2,
-        "position": 1168,
+        "time": 1,
+        "position": 200,
         "home": false
       },
       {
         "time": 5,
+        "position": 1168,
+        "home": false
+      },
+      {
+        "time": 7,
         "position": 2622,
         "home": true
       }
@@ -76,43 +76,48 @@
     "scroll": [
       {
         "time": 0,
-        "position": 0
+        "position": 3,
+        "home": true
       },
       {
         "time": 14,
-        "position": 0
-      },
-      {
-        "time": 14,
-        "position": 360
+        "position": 575,
+        "home": false
       },
       {
         "time": 28,
-        "position": 840
+        "position": 1135,
+        "home": false
       },
       {
         "time": 40,
-        "position": 1260
+        "position": 1422,
+        "home": false
       },
       {
         "time": 50,
-        "position": 1680
+        "position": 1710,
+        "home": false
       },
       {
         "time": 62,
-        "position": 2340
+        "position": 2123,
+        "home": false
       },
       {
         "time": 69,
-        "position": 2820
+        "position": 2415,
+        "home": false
       },
       {
         "time": 81,
-        "position": 3240
+        "position": 2726,
+        "home": false
       },
       {
         "time": 93,
-        "position": 3720
+        "position": 3720,
+        "home": false
       }
     ]
   },
@@ -172,7 +177,53 @@
     "scroll": [
       {
         "time": 0,
-        "position": 0
+        "position": 0,
+        "home": false
+      }
+    ]
+  },
+  "嘉宾": {
+    "id": 8,
+    "singer": "张远",
+    "type": "弹唱",
+    "view": 0,
+    "download": 0,
+    "cover": 0,
+    "scroll": [
+      {
+        "time": 0,
+        "position": 0,
+        "home": false
+      },
+      {
+        "time": 19,
+        "position": 1271,
+        "home": false
+      },
+      {
+        "time": 32,
+        "position": 1602,
+        "home": false
+      },
+      {
+        "time": 45,
+        "position": 2170,
+        "home": false
+      },
+      {
+        "time": 52,
+        "position": 2494,
+        "home": false
+      },
+      {
+        "time": 105,
+        "position": 2814,
+        "home": false
+      },
+      {
+        "time": 115,
+        "position": 3142,
+        "home": false
       }
     ]
   }
