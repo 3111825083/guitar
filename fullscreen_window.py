@@ -6,6 +6,8 @@ import os
 import time
 import re
 
+from components.image_handler import ImageHandler
+
 
 class FullScreenImageWindow:
     def __init__(self, parent=None):
@@ -288,13 +290,18 @@ class FullScreenImageWindow:
     def load_image(self, tab_name):
         """加载图片并显示在Canvas上（替代Label）"""
         self.tab_name = tab_name
+        self.combined_image_path = rf"source\{self.tab_name}\combined_fullscreen.png"
         try:
-            # 确定图片路径
-            if not self.combined_image_path:
-                self.combined_image_path = rf"source\{self.tab_name}\combined_fullscreen.png"
-
+            # ========== 核心：先检查合并图，不存在则自动生成 ==========
             if not os.path.exists(self.combined_image_path):
-                return
+                # 调用已有ImageHandler生成合并长图
+                generated_path = ImageHandler.create_combined_image(self.tab_name)
+                # 生成失败则直接返回
+                if not generated_path:
+                    print(f"[{self.tab_name}] 无可用图片，合并长图生成失败")
+                    return
+                # 生成成功，更新路径
+                self.combined_image_path = generated_path
 
             # 打开并缩放图片
             image = Image.open(self.combined_image_path)
@@ -476,8 +483,6 @@ class FullScreenImageWindow:
         # 更改标记样式（提示正在拖动）
         self.canvas.itemconfig(marker_id, outline='yellow', width=3)
     def get_current_and_next_timestamp(self, scroll_data, current_time):
-        # 定义容差（保持原逻辑的0.1秒）
-        TOLERANCE = 0.1
 
         # 生成带缩放后position的时间戳列表（保留所有数据，后续统一排序过滤）
         timestamp_items = [
@@ -500,17 +505,16 @@ class FullScreenImageWindow:
 
         # 1. 找当前时间戳：不大于 current_time + TOLERANCE 的最大时间戳
         for ts in timestamp_items:
-            ts_time = ts[0]
-            if ts_time <= current_time + TOLERANCE:
+            if ts[0] <= current_time:
                 current_ts = ts  # 遍历到最后一个符合条件的即为最大的
             else:
-                current_ts = [0,0,0,0]
                 break  # 排序后，后续时间更大，无需继续
 
+        if not current_ts:
+            current_ts = [0,0,False,0.0]
         # 2. 找下一个时间戳：大于 current_time - TOLERANCE 的最小时间戳
         for ts in timestamp_items:
-            ts_time = ts[0]
-            if ts_time > current_time - TOLERANCE:
+            if ts[0] > current_time:
                 next_ts = ts
                 break  # 排序后第一个符合条件的即为最小的
 
@@ -585,7 +589,7 @@ class FullScreenImageWindow:
                         pass
                 else:
                     # 不是起始点
-                    self.smooth_scroll_to(next_time,next_ratio,elapsed_time)
+                    self.smooth_scroll_to(current_time,next_time,current_ratio,next_ratio,elapsed_time)
             else:
                 # 无后续时间戳：停止滚动
                 self.stop_auto_scroll()
@@ -594,14 +598,17 @@ class FullScreenImageWindow:
         # 持续回调实现平滑滚动
         self.auto_scroll_after_id = self.root.after(self.smooth_refresh_ms, self.auto_scroll_step)
 
-    def smooth_scroll_to(self,next_time,target_fraction,elapsed_time):
+    def smooth_scroll_to(self,current_time,next_time,current_fraction,target_fraction,elapsed_time):
         """真正的平滑滚动：每次移动一小步，直到到达目标"""
         current_top_fraction = self.canvas.yview()[0]
         current_botton_fraction = self.canvas.yview()[1]
         m_fraction = (current_botton_fraction - current_top_fraction)*self.screen_marker_pos+current_top_fraction
         remaining_time = max(0.01, next_time - elapsed_time)
+
+        # # 按步长逐步接近目标
+        # step = float(self.smooth_refresh_ms/1000)*(target_fraction-m_fraction)/remaining_time
         # 按步长逐步接近目标
-        step = float(self.smooth_refresh_ms/1000)*(target_fraction-m_fraction)/remaining_time
+        step = float(self.smooth_refresh_ms / 1000) * (target_fraction - current_fraction) / (next_time - current_time)
         new_fraction = m_fraction + step
         self.canvas.yview_moveto(new_fraction-(current_botton_fraction - current_top_fraction)*self.screen_marker_pos)
 
@@ -609,11 +616,3 @@ class FullScreenImageWindow:
         """退出全屏并清理资源"""
         self.stop_auto_scroll()
         self.root.destroy()
-
-
-# 测试代码（直接运行时生效）
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.withdraw()  # 隐藏主窗口
-    app = FullScreenImageWindow()
-    root.mainloop()
