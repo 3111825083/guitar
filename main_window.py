@@ -3,6 +3,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import os
 from PIL import Image, ImageTk
+from _ctypes import sizeof
+from pefile import sizeof_type
 
 from components.guitartab_manager import GuitarTabManager
 from fullscreen_window import FullScreenImageWindow
@@ -99,25 +101,30 @@ class MainWindow:
         dialog_frame = ttk.Frame(dialog)
         dialog_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
-        # 表单
+        # 表单框架
         form_frame = ttk.LabelFrame(dialog_frame, text="歌曲信息")
-        form_frame.pack(fill=tk.BOTH, expand=True)
+        form_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        ttk.Label(form_frame, text="歌曲名:").grid(row=0, column=0, sticky=tk.W, pady=5)
+        # ========== 表单控件 ==========
+        # 1. 歌曲名（对应外层键，如"我想"）
+        ttk.Label(form_frame, text="歌曲名:").grid(row=0, column=0, sticky=tk.W, pady=5, padx=5)
         song_name_input = ttk.Entry(form_frame)
-        song_name_input.grid(row=0, column=1, sticky=tk.EW, pady=5, padx=(10, 0))
+        song_name_input.grid(row=0, column=1, sticky=tk.EW, pady=5, padx=(10, 5))
 
-        ttk.Label(form_frame, text="歌手:").grid(row=1, column=0, sticky=tk.W, pady=5)
+        # 3. 歌手
+        ttk.Label(form_frame, text="歌手:").grid(row=2, column=0, sticky=tk.W, pady=5, padx=5)
         singer_input = ttk.Entry(form_frame)
-        singer_input.grid(row=1, column=1, sticky=tk.EW, pady=5, padx=(10, 0))
+        singer_input.grid(row=2, column=1, sticky=tk.EW, pady=5, padx=(10, 5))
 
-        ttk.Label(form_frame, text="类型:").grid(row=2, column=0, sticky=tk.W, pady=5)
+        # 4. 类型
+        ttk.Label(form_frame, text="类型:").grid(row=3, column=0, sticky=tk.W, pady=5, padx=5)
         type_var = tk.StringVar()
-        type_combo = ttk.Combobox(form_frame, textvariable=type_var, values=["弹唱", "指弹", "独奏", "合奏"],
-                                  state="readonly")
-        type_combo.grid(row=2, column=1, sticky=tk.EW, pady=5, padx=(10, 0))
-        type_combo.current(0)
+        type_combo = ttk.Combobox(form_frame, textvariable=type_var,
+                                  values=["弹唱", "指弹", "独奏", "合奏"], state="readonly")
+        type_combo.grid(row=3, column=1, sticky=tk.EW, pady=5, padx=(10, 5))
+        type_combo.current(0)  # 默认选中"弹唱"
 
+        # 列权重设置（让输入框自适应宽度）
         form_frame.columnconfigure(1, weight=1)
 
         # 按钮框架
@@ -126,23 +133,34 @@ class MainWindow:
 
         def confirm_add():
             song_name = song_name_input.get().strip()
+            song_id = 0
             singer = singer_input.get().strip()
             song_type = type_var.get()
+            view = 0
+            download = 0
+            cover = 0
 
             if song_name and singer:
                 # 检查歌曲是否已存在
                 existing_tabs = self.tab_manager.get_all_tabs()
+                song_id = len(existing_tabs) + 1
                 if song_name in existing_tabs:
                     messagebox.showwarning("警告", f"歌曲 '{song_name}' 已存在！")
                     return
-
-                # 创建新的歌曲信息
                 new_song_info = {
-                    "artist": singer,
+                    "id": song_id,
+                    "singer": singer,
                     "type": song_type,
-                    "views": "0",
-                    "downloads": "0",
-                    "pages": 0
+                    "view": view,
+                    "download": download,
+                    "cover": cover,
+                    "scroll": [
+                        {
+                            "time": 0,
+                            "position": 0,
+                            "home": False
+                        }
+                    ]
                 }
 
                 # 添加到配置中
